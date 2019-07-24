@@ -1,0 +1,6 @@
+#!/bin/sh
+
+bcftools isec  all-snps.vcf.gz -p -n =10 -w 1  >  out.log 2>&1 | cat ~/dir/sites.txt|wc -l
+
+
+exit
