@@ -6,8 +6,9 @@ This is a script for extracting shared polymorphisms from multiple VCF files usi
 
 This can be followed by making counts of specific polymorphisms using grep -c "variant classes"
 
-Getting Started
-These instructions will get you extract and counts polymorphisms of interest from your VCF.
+Getting started -
+These instructions will get you extract
+and count polymorphisms of interest from your VCF.
 
 System Requirements (tested on ProductName:	Mac OS X ProductVersion:	10.14.4 BuildVersion:	18E226)
 bcftools (Tools for variant calling and manipulating VCFs and BCFs)- Version: 1.9 (using htslib 1.9)
