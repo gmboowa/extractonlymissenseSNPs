@@ -1,9 +1,0 @@
-#!/bin/sh
-
-bcftools isec  all-snps.vcf.gz -p -n =10 -w 1  >  out.log 2>&1 | cat ~/dir/sites.txt|wc -l
-
-awk 'NR==FNR{a[i++]=$0};{b[x++]=$0;};{k=x-i};END{for(j=0;j<i;) print a[j++],b[k++]}'  ~/dir/sites.txt ~/Snippy/All.snps.tab > Shared.by.All.10.Isolates.tab
-
-grep -c "missense_variant" Shared.by.All.10.Isolates.tab
-
-exit
