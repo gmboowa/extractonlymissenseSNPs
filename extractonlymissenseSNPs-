@@ -1,0 +1,76 @@
+#!/bin/bash
+# Title: Extract and Count Missense SNPs from VCF Files
+# Author: Gerald Mboowa
+# Description: This script extracts shared polymorphisms (missense SNPs) from multiple VCF files using BCFTools and Bash commands.
+# It also counts specific polymorphism types (e.g., missense SNPs) for downstream analysis.
+
+# Start timing the script execution
+start_time=$(date +%s)
+
+# Step 1: Set the working directory
+# Ensure this script is run from the directory where your VCF files are located.
+echo "Setting the working directory..."
+cd /path/to/your/working/directory || { echo "Error: Directory not found!"; exit 1; }
+
+# Step 2: Verify BCFTools installation
+# Check if BCFTools is installed; if not, prompt the user to install it.
+if ! command -v bcftools &> /dev/null; then
+    echo "Error: BCFTools is not installed. Please install it before running this script."
+    exit 1
+else
+    echo "BCFTools is installed."
+fi
+
+# Step 3: Process each VCF file
+# Replace "list_of_vcfs.txt" with the name of a file containing a list of VCF filenames (one per line).
+echo "Processing VCF files to extract missense SNPs..."
+while IFS= read -r vcf_file; do
+    # Check if the VCF file exists
+    if [[ ! -f "$vcf_file" ]]; then
+        echo "Error: VCF file $vcf_file not found. Skipping."
+        continue
+    fi
+
+    # Extract missense SNPs from the VCF file
+    echo "Extracting missense SNPs from $vcf_file..."
+    output_file="${vcf_file%.vcf}_missense_snps.vcf"
+    bcftools view -i 'TYPE="snp" && INFO/ANN ~ "missense_variant"' "$vcf_file" -o "$output_file" -Ov
+    if [[ $? -ne 0 ]]; then
+        echo "Error: Failed to extract missense SNPs from $vcf_file."
+        continue
+    fi
+
+    # Count the number of missense SNPs
+    missense_count=$(grep -c "missense_variant" "$output_file")
+    echo "Number of missense SNPs in $vcf_file: $missense_count"
+
+    # Save the count to a summary file
+    echo "$vcf_file: $missense_count missense SNPs" >> missense_snp_summary.txt
+done < list_of_vcfs.txt
+
+# Step 4: Summarize the results
+echo "Summarizing results..."
+if [[ -f missense_snp_summary.txt ]]; then
+    echo "Summary of missense SNP counts:"
+    cat missense_snp_summary.txt
+else
+    echo "No missense SNPs were identified in the processed files."
+fi
+
+# End timing the script execution
+end_time=$(date +%s)
+execution_time=$((end_time - start_time))
+echo "Script completed in $execution_time seconds."
+
+# Notes:
+# - Ensure the list_of_vcfs.txt contains one VCF filename per line.
+# - Modify the working directory path (cd command) to the appropriate location.
+# - Install BCFTools if not already installed using: brew install bcftools (macOS) or apt install bcftools (Ubuntu).
+
+exit 0
+"""
+
+# Save the annotated script to a file
+script_path = "/mnt/data/Extract_and_Count_Missense_SNPs.sh"
+with open(script_path, "w") as file:
+    file.write(annotated_script)
