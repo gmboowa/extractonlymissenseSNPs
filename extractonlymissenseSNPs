@@ -1,0 +1,134 @@
+#!/usr/bin/env bash
+set -eo pipefail
+trap 'echo "Error at line $LINENO"; exit 1' ERR
+
+# Configuration
+VERSION="2.0.0"
+THREADS=$(( $(nproc) / 2 ))  # Use half available cores
+WORKDIR="./"
+OUTDIR="missense_results"
+MIN_BCFTOOLS_VER=1.10  # Minimum required bcftools version
+
+# Color codes for messages
+RED=$(tput setaf 1)
+GREEN=$(tput setaf 2)
+YELLOW=$(tput setaf 3)
+RESET=$(tput sgr0)
+
+# Functions
+show_help() {
+    echo -e "Usage: ${0##*/} [OPTIONS]"
+    echo "Analyze missense SNPs in VCF files"
+    echo ""
+    echo "Options:"
+    echo "  -d, --dir DIR       Working directory (default: $WORKDIR)"
+    echo "  -o, --outdir DIR    Output directory (default: $OUTDIR)"
+    echo "  -t, --threads INT   Number of threads (default: $THREADS)"
+    echo "  -h, --help          Show this help message"
+    echo ""
+    echo "Required tools:"
+    echo "  - bcftools >= $MIN_BCFTOOLS_VER"
+    echo "  - bgzip and tabix (for compressed VCF handling)"
+}
+
+check_dependencies() {
+    local errors=0
+    
+    # Check bcftools version
+    if ! command -v bcftools &> /dev/null; then
+        echo "${RED}ERROR: bcftools not found${RESET}"
+        errors=1
+    else
+        local bcf_ver=$(bcftools --version | head -n1 | cut -d' ' -f2)
+        if (( $(echo "$bcf_ver < $MIN_BCFTOOLS_VER" | bc -l) )); then
+            echo "${RED}ERROR: bcftools version $MIN_BCFTOOLS_VER+ required (found $bcf_ver)${RESET}"
+            errors=1
+        fi
+    fi
+
+    # Check compression tools
+    for tool in bgzip tabix; do
+        if ! command -v $tool &> /dev/null; then
+            echo "${RED}ERROR: $tool not found${RESET}"
+            errors=1
+        fi
+    done
+
+    (( errors > 0 )) && exit 1
+}
+
+process_vcf() {
+    local vcf=$1
+    local base=$(basename "$vcf" .vcf)
+    base=$(basename "$base" .gz)
+    
+    echo "${YELLOW}Processing: $vcf${RESET}"
+    
+    # Extract missense variants
+    bcftools view \
+        --threads "$THREADS" \
+        -i 'TYPE="snp" && INFO/ANN~"missense_variant"' \
+        -O z \
+        -o "$OUTDIR/${base}_missense.vcf.gz" \
+        "$vcf"
+    
+    # Index output
+    tabix -p vcf "$OUTDIR/${base}_missense.vcf.gz"
+    
+    # Get count
+    local count=$(bcftools query -f '%ANN\n' "$OUTDIR/${base}_missense.vcf.gz" | 
+                  grep -c "missense_variant")
+    
+    # Add to summary
+    printf "%-40s\t%d\n" "$base" "$count" >> "$OUTDIR/missense_summary.tsv"
+    
+    echo "${GREEN}Processed: $vcf (found $count missense SNPs)${RESET}"
+}
+
+# Main execution
+main() {
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -d|--dir)
+                WORKDIR="$2"
+                shift 2
+                ;;
+            -o|--outdir)
+                OUTDIR="$2"
+                shift 2
+                ;;
+            -t|--threads)
+                THREADS="$2"
+                shift 2
+                ;;
+            -h|--help)
+                show_help
+                exit 0
+                ;;
+            *)
+                echo "${RED}Unknown option: $1${RESET}"
+                show_help
+                exit 1
+                ;;
+        esac
+    done
+
+    check_dependencies
+    mkdir -p "$OUTDIR"
+    
+    # Initialize summary file
+    echo -e "Sample\tMissense_SNP_Count" > "$OUTDIR/missense_summary.tsv"
+    
+    # Find and process VCF files
+    find "$WORKDIR" -type f \( -name "*.vcf" -o -name "*.vcf.gz" \) | while read -r vcf; do
+        process_vcf "$vcf"
+    done
+
+    # Final report
+    echo -e "\n${GREEN}Analysis complete! Results in: $OUTDIR${RESET}"
+    echo "Summary:"
+    column -t -s $'\t' "$OUTDIR/missense_summary.tsv"
+}
+
+main "$@"
