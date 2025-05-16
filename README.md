@@ -12,10 +12,10 @@ This script is designed for extracting shared polymorphisms from multiple VCF fi
 
 ---
 
-## Getting Started
+## Getting started
 Follow these instructions to extract and count polymorphisms of interest from your VCF files.
 
-### System Requirements
+### System requirements
 This script has been tested on the following system:
 - **Operating System**: macOS X  
   - Product Version: 10.14.4  
@@ -29,7 +29,7 @@ Ensure that **BCFTools** is installed on your system. If not, you can install it
 
 ## Usage
 
-### Step 1: Set Your Working Directory
+### Step 1: Set your working directory
 Change the current working directory to the location where you want to store or process your VCF files:
 ```bash
 cd /path/to/your/working/directory
@@ -49,7 +49,7 @@ make
 
 ---
 
-## Next Steps
+## Next steps
 Once BCFTools is installed and your working directory is set:
 1. Extract the polymorphisms of interest using BCFTools commands.
 2. Count specific polymorphisms, such as missense variants, with `grep -c`.
@@ -66,7 +66,7 @@ grep -c "missense_variant" output_missense_snps.vcf
 
 ---
 
-## Additional Notes
+## Additional notes
 - Ensure that the input VCF files are properly indexed with a `.tbi` file using `bcftools index`.
 - The script can be customized to filter for other variant classes based on your research needs.
 
